@@ -12,3 +12,4 @@ function reverseStringOptmzd (s) {
 	return s === "" ? "" : //Terminal condition, a la The Little Schemer
 		s[len_minus_one] + reverseString(s.substring(0,len_minus_one));  
 }
+
