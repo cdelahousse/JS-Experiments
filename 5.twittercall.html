@@ -1,0 +1,199 @@
+<!doctype html>
+<!-- paulirish.com/2008/conditional-stylesheets-vs-css-hacks-answer-neither/ -->
+<!--[if lt IE 7]> <html class="no-js lt-ie9 lt-ie8 lt-ie7" lang="en"> <![endif]-->
+<!--[if IE 7]>		<html class="no-js lt-ie9 lt-ie8" lang="en"> <![endif]-->
+<!--[if IE 8]>		<html class="no-js lt-ie9" lang="en"> <![endif]-->
+<!-- Consider adding a manifest.appcache: h5bp.com/d/Offline -->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en"> <!--<![endif]-->
+	<head>
+		<meta charset="utf-8">
+
+		<!-- Use the .htaccess and remove these lines to avoid edge case issues.
+		More info: h5bp.com/i/378 -->
+		<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+
+		<title></title>
+		<meta name="description" content="">
+
+		<!-- Mobile viewport optimized: h5bp.com/viewport -->
+		<meta name="viewport" content="width=device-width">
+
+		<script>
+
+			//shorter log function
+			function lg(a) {
+				console.log(a);
+			}
+
+
+			var ApiLibrary = function(api_url,frmt) {
+				this.scriptTag = null;
+				this.query = "",
+				this.resource = api_url;
+				this.format = frmt;
+
+				this.buildScriptTag = function buildScriptTag() {
+					this.scriptTag = document.createElement('script');
+					this.scriptTag.src = this.resource + this.query;
+
+
+				}
+				this.makeRequest = function () {
+					document.getElementsByTagName('head')[0].appendChild( this.scriptTag );
+				}
+
+				//Set Query string elements
+				this.setQuery = function setQuery (qry) {
+					this.query += (this.query.charAt(0) === "?" ?  "&" : "?") + qry;
+
+				}
+
+				//Set REST resource
+				this.setResource = function setResource(rsc) {
+					this.resource += rsc;
+
+				}
+				
+				//generate GUID for JSONP callback methods
+				this.generateGUID = function generateGUID() {
+					return 'jxxxxxxxxxxxx4xxxyxxxxxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+						    var r = Math.random()*16|0, v = c == 'x' ? r : (r&0x3|0x8);
+						        return v.toString(16);
+					});
+				}
+			}
+
+
+
+
+			var Tweet = function () {
+
+				var obj = new ApiLibrary("http://api.twitter.com/","json");
+
+
+				//Get latest tweet
+				//Input: object or string representing name of function
+				obj.getLatest = function(handler) {
+					var GUID = this.generateGUID();
+
+
+					obj.setResource("/1/statuses/user_timeline." + this.format);
+					obj.setQuery("screen_name=cdelahousse");
+					obj.setQuery("callback=Tweet." + GUID);
+					obj.setQuery("count=1");
+					obj.buildScriptTag();
+					obj.makeRequest();
+
+					Tweet[GUID] = GuidHandlerMaker(returnMessage,GUID);
+
+					//Extracts Message
+					function returnMessage(obj) {
+						handler(obj[0].text);
+					}
+
+
+				}
+				obj.getTrending = function(handler) {
+
+					var GUID = this.generateGUID();
+
+
+					obj.setResource("/1/trends/daily." + this.format);
+					obj.setQuery("callback=Tweet." + GUID);
+					obj.buildScriptTag();
+					obj.makeRequest();
+
+					Tweet[GUID] = GuidHandlerMaker(handler,GUID);
+				}
+
+
+				//Creates a closure containing the handler and the GUID
+				function GuidHandlerMaker (handler,GUID) {
+					return function (response) {
+
+						//handler can be string or function
+						if (typeof handler === 'string') {
+							window[handler](response) ;
+						}
+						else {
+							handler(response);
+						}
+
+						//Delete created static JSONP method
+						delete Tweet[GUID];
+					}
+				}
+				return obj;
+			}
+			
+
+			
+			//TEST
+			var twit = new Tweet();
+			twit.getLatest(updateParen);
+			
+			
+			function updateParen(str) {
+				
+				document.getElementById("latest").textContent = str;
+			};
+
+			function randomTrend(obj) {
+
+				console.log(obj);
+			}
+
+
+		</script>
+
+		<style type="text/css">
+
+			.myButton {
+				position:fixed;
+				bottom: 0;
+				right: 0;
+			}
+		</style>
+
+		<!-- Init elements! --!>
+		<script>
+
+
+			window.addEventListener ("load", function () {
+
+				//New element creation
+				var button = document.createElement("button");
+				button.type = "button";
+				button.textContent = "Create New Window";
+				button.className = "myButton";
+
+				//Create new element
+				button.addEventListener("click",function () {
+					(new Tweet()).getTrending(randomTrend);
+
+				});
+
+				document.getElementById("main").appendChild(button);
+
+			});
+
+		</script>
+
+	</head>
+	<body>
+		<!-- Prompt IE 6 users to install Chrome Frame. Remove this if you support IE 6.
+		chromium.org/developers/how-tos/chrome-frame-getting-started -->
+		<!--[if lt IE 7]><p class=chromeframe>Your browser is <em>ancient!</em> <a href="http://browsehappy.com/">Upgrade to a different browser</a> or <a href="http://www.google.com/chromeframe/?redirect=true">install Google Chrome Frame</a> to experience this site.</p><![endif]-->
+		<header>
+
+		</header>
+		<div id="main">
+
+			<p id="latest"></p>
+
+		</div>
+		<footer>
+
+		</footer>
+	</body>
+</html>
