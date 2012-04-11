@@ -28,18 +28,23 @@
 
 			var ApiLibrary = function(api_url,frmt) {
 				this.scriptTag = null;
-				this.query = "",
-				this.resource = api_url;
+				this.query = "";
+				this.resource = "";
+				this.api_url = api_url;
 				this.format = frmt;
 
 				this.buildScriptTag = function buildScriptTag() {
 					this.scriptTag = document.createElement('script');
-					this.scriptTag.src = this.resource + this.query;
+					this.scriptTag.src = api_url +  this.resource + this.query;
 
 
 				}
 				this.makeRequest = function () {
 					document.getElementsByTagName('head')[0].appendChild( this.scriptTag );
+				}
+				this.resetRequest = function() {
+					this.query = "";
+					this.resource = "";
 				}
 
 				//Set Query string elements
@@ -68,40 +73,39 @@
 
 			var Tweet = function () {
 
-				var obj = new ApiLibrary("http://api.twitter.com/","json");
-
-
 				//Get latest tweet
 				//Input: object or string representing name of function
-				obj.getLatest = function(handler) {
+				this.getLatest = function getLatest(handler, screen_name) {
 					var GUID = this.generateGUID();
 
 
-					obj.setResource("/1/statuses/user_timeline." + this.format);
-					obj.setQuery("screen_name=cdelahousse");
-					obj.setQuery("callback=Tweet." + GUID);
-					obj.setQuery("count=1");
-					obj.buildScriptTag();
-					obj.makeRequest();
+					this.setResource("/1/statuses/user_timeline." + this.format);
+					this.setQuery("screen_name="+screen_name);
+					this.setQuery("callback=Tweet." + GUID);
+					this.setQuery("count=1");
+					this.buildScriptTag();
+					this.makeRequest();
+					this.resetRequest();
 
 					Tweet[GUID] = GuidHandlerMaker(returnMessage,GUID);
 
 					//Extracts Message
-					function returnMessage(obj) {
-						handler(obj[0].text);
+					function returnMessage(response) {
+						handler(response[0].text);
 					}
 
 
 				}
-				obj.getTrending = function(handler) {
+				this.getTrending = function(handler) {
 
 					var GUID = this.generateGUID();
 
 
-					obj.setResource("/1/trends/daily." + this.format);
-					obj.setQuery("callback=Tweet." + GUID);
-					obj.buildScriptTag();
-					obj.makeRequest();
+					this.setResource("/1/trends/daily." + this.format);
+					this.setQuery("callback=Tweet." + GUID);
+					this.buildScriptTag();
+					this.makeRequest();
+					this.resetRequest();
 
 					Tweet[GUID] = GuidHandlerMaker(handler,GUID);
 				}
@@ -120,29 +124,36 @@
 						}
 
 						//Delete created static JSONP method
-						delete Tweet[GUID];
+						delete this[GUID];
 					}
 				}
-				return obj;
 			}
-			
+
+			Tweet.prototype = new ApiLibrary("http://api.twitter.com/","json");
 
 			
 			//TEST
 			var twit = new Tweet();
-			twit.getLatest(updateParen);
+			twit.getLatest(updateParen,"cdelahousse");
 			
 			
 			function updateParen(str) {
 				
-				document.getElementById("latest").textContent = str;
+				document.getElementById("latest").innerHTML= str;
 			};
 
 			function randomTrend(obj) {
 
-				console.log(obj);
-			}
+				var today;
 
+				for (o in obj.trends) {
+					today = obj.trends[o];
+					break;
+				}
+
+				updateParen("Latest Trend: " + today[Math.floor(today.length * Math.random())].name);
+
+			}
 
 		</script>
 
@@ -164,7 +175,7 @@
 				//New element creation
 				var button = document.createElement("button");
 				button.type = "button";
-				button.textContent = "Create New Window";
+				button.textContent = "Latest Trends";
 				button.className = "myButton";
 
 				//Create new element
@@ -175,6 +186,18 @@
 
 				document.getElementById("main").appendChild(button);
 
+				var button2 = document.createElement("button");
+				button2.type = "button";
+				button2.textContent = "Get My Latest Tweet";
+				button2.className = "myButton";
+				button2.style.right = "100px";
+
+				//Create new element
+				button2.addEventListener("click",function () {
+					twit.getLatest(updateParen,"cdelahousse");
+
+				});
+				document.getElementById("main").appendChild(button2);
 			});
 
 		</script>
